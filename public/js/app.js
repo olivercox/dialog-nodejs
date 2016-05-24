@@ -27,9 +27,10 @@ angular.module('simpletonApp', ['luegg.directives', 'ngSanitize'])
             Simpleton.messages.push({
                 from: Simpleton.users[1], text: Simpleton.messageText
             });
+            params.input = Simpleton.messageText
             $http({
                 method: 'POST',
-                data: { input: Simpleton.messageText },
+                data: params,
                 url: '/conversation'
             }).then(function successCallback(response) {
                 var dialogResp = response;
