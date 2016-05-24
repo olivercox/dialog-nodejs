@@ -60,16 +60,16 @@ var dialog_id_in_json = (function() {
 })();
 
 
-var dialog_id = process.env.DIALOG_ID || dialog_id_in_json || 'b8032a9e-9543-4798-8a85-c69966bc7e16';
+var dialog_id = process.env.DIALOG_ID || dialog_id_in_json || 'a4db781f-23e8-4ffe-b6c2-7fa4d112f3cc';
 
 // Create the service wrapper
 var dialog = watson.dialog(credentials);
 
 app.post('/conversation', function(req, res, next) {
-  var params = extend({ dialog_id: dialog_id }, req.body);
   if(!empty(req.body)) {
     var consId = req.body.conversation_id;
     var clientId = req.body.client_id;
+    var params = extend({ dialog_id: dialog_id, client_id: '2595560' }, req.body);
     sendtoAlchemy(req.body.input, function() {
       classifierCall(req.body.input, function() {
         var intent = topClass;
@@ -87,7 +87,8 @@ app.post('/conversation', function(req, res, next) {
                 if (err)
                   return next(err);
                 else
-                  res.json({ dialog_id: dialog_id, conversation: results});
+                  getDialogDone(res, params, results, next);
+                  // res.json({ dialog_id: dialog_id, conversation: results});
               });
             } else {
               res.json({ dialog_id: 10, conversation: conversationResponse(action)});
@@ -190,6 +191,22 @@ function classifierCall(body, callBack) {
   });
 };
 
+function getDialogDone(res, params, dialogResults, next) {
+  dialog.getProfile(params, function(err, results) {
+    if (err)
+      return next(err);
+      else {
+        console.log(results);
+        results.name_values.forEach(function(nameValue) {
+          if (nameValue.name === 'Finished' && nameValue.value === 'Done') {
+            dialogResults.conversation_id = '';
+          }
+        });
+        res.json({ dialog_id: dialog_id, conversation: dialogResults});
+      }
+  });
+
+}
 
 function getTopClass(response) {
   topClass = response.top_class
