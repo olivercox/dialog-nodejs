@@ -13,7 +13,7 @@
     position: fixed;
     top:100px;
     left:50px;
-    background: url(/images/simply-business_logo_wordmark_light.png) no-repeat;
+    background: url(/images/simply-business_logo_graphic_light.png) no-repeat;
 }
 
 .full-height {
@@ -221,7 +221,7 @@
 
     .thedrum {
         margin-top: 5px;
-        height: 30px;
+        height: 60px;
     }
     .hsbc-sign {
         height: 60px;
@@ -229,6 +229,7 @@
     .footer {
         bottom: 0px;
         height: 228px;
+        padding-top:10px;
     }
     .footer-row1 {
         height: 50px;
