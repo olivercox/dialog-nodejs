@@ -18,12 +18,13 @@
 
 var keywords = [];
 var topClass = null;
+var conversationId = false;
 
 var actions = {
   "how to" : { "claim" : "phone this number 0800123123" },
-  "time" : { "claim" : "it's dinner time", "payment" : "you owe money" }
+  "time" : { "claim" : "it's dinner time", "payment" : "you owe money" },
+  "do you cover" : { "tools" : "01", "buildings" : "02", "public liability" : "03" }
 };
-
 
 var express = require('express'),
   app       = express(),
@@ -32,10 +33,13 @@ var express = require('express'),
   bluemix   = require('./config/bluemix'),
   extend    = require('util')._extend,
   watson    = require('watson-developer-cloud'),
-  empty     = require('is-empty');
+  empty     = require('is-empty'),
+  session   = require('express-session');
 
 // Bootstrap application settings
 require('./config/express')(app);
+
+app.use(session({ secret: 'keyboard cat'}))
 
 // if bluemix credentials exists, then override local
 var credentials =  extend({
@@ -67,43 +71,53 @@ app.post('/conversation', function(req, res, next) {
 
     sendtoAlchemy(req.body.input, function() {
       classifierCall(req.body.input, function() {
-        // console.log(classifierResults);
         var intent = topClass;
-        var keyword = keywords[0]
-          if (actions[intent][keyword]) {
-            var response = { conversation_id: 2586558,
-              client_id: 2595560,
-              input: 'hello',
-              confidence: -1,
-              response: [ actions[intent][keyword] ] };
+        var keyword = keywords[0];
+        if (!empty(intent) && !empty(keyword)) {
+          var action = actions[intent][keyword];
+        };
 
-            res.json({ dialog_id: 10, conversation: response});
+          if (action) {
+            console.log(req.session);
+            if (req.session.convers === true || intent === "do you cover") {
+              req.session.convers = true;
+              dialog.conversation(params, function(err, results) {
+                console.log(results);
+                if (err)
+                  return next(err);
+                else
+                  res.json({ dialog_id: dialog_id, conversation: results});
+              });
+            } else {
+              res.json({ dialog_id: 10, conversation: conversationResponse(action)});
+            }
+          } else {
+            res.json({ dialog_id: 10, conversation: conversationResponse('What?')});
           }
 
 
-        // res.json({ dialog_id: dialog_id, conversation: results});
+          // res.json({ dialog_id: dialog_id, conversation: results});
       });
     });
 
-      // classifierCall(req.body.input, function() {
-      //   console.log('classifier done');
-        // res.json({ dialog_id: dialog_id, conversation: results});
-      // });
 
     // dialog.conversation(params, function(err, results) {
     //   console.log(results);
     //   if (err)
     //     return next(err);
     //   else
-    //     // sendtoAlchemy(req.body.input, function() {
     //       res.json({ dialog_id: dialog_id, conversation: results});
-        // });
-      // classifierCall(req.body.input, function() {
-      //   res.json({ dialog_id: dialog_id, conversation: results});
-      // });
     // });
   }
 });
+
+function  conversationResponse(action) {
+   return { conversation_id: 2586558,
+    client_id: 2595560,
+    input: 'hello',
+    confidence: -1,
+    response: [ action ] };
+}
 
 app.post('/profile', function(req, res, next) {
   var params = extend({ dialog_id: dialog_id }, req.body);
@@ -133,11 +147,10 @@ function sendtoAlchemy(body, callBack) {
     if (err)
       console.log('error:', err);
     else
-      console.log(JSON.stringify(response, null, 2));
     if (response !== null) {
       addToKeyWords(response);
     };
-      callBack();
+    callBack();
   });
 }
 
@@ -146,7 +159,6 @@ function addToKeyWords(response) {
   response.keywords.forEach(function(word) {
     keywords.push(word.text)
   });
-  console.log(keywords);
 };
 
 var nlClassifier = watson.natural_language_classifier({
@@ -158,19 +170,15 @@ var nlClassifier = watson.natural_language_classifier({
 
 function classifierCall(body, callBack) {
   var classifyParams = {
-    classifier: process.env.CLASSIFIER_ID || '3a84dfx64-nlc-14073', // pre-trained classifier
+    classifier: process.env.CLASSIFIER_ID || '3a84cfx63-nlc-14828', // pre-trained classifier
     text: body
   };
-console.log('line 164');
   nlClassifier.classify(classifyParams, function(err, results) {
-console.log('line 166');
 
     if (err) {
       console.log(err);
-      console.log('error');
     }
     else {
-      console.log('hello');
       console.log(results);
       if (results !== null) {
         getTopClass(results);
