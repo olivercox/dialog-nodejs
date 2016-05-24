@@ -39,7 +39,7 @@ var express = require('express'),
 // Bootstrap application settings
 require('./config/express')(app);
 
-app.use(session({ secret: 'keyboard cat'}))
+app.use(session({ secret: 'keyboard cat'}));
 
 // if bluemix credentials exists, then override local
 var credentials =  extend({
@@ -60,7 +60,7 @@ var dialog_id_in_json = (function() {
 })();
 
 
-var dialog_id = process.env.DIALOG_ID || dialog_id_in_json || '037e8a89-e713-4065-9717-b7cc2acb3e2e';
+var dialog_id = process.env.DIALOG_ID || dialog_id_in_json || 'b8032a9e-9543-4798-8a85-c69966bc7e16';
 
 // Create the service wrapper
 var dialog = watson.dialog(credentials);
@@ -68,7 +68,8 @@ var dialog = watson.dialog(credentials);
 app.post('/conversation', function(req, res, next) {
   var params = extend({ dialog_id: dialog_id }, req.body);
   if(!empty(req.body)) {
-
+    var consId = req.body.conversation_id;
+    var clientId = req.body.client_id;
     sendtoAlchemy(req.body.input, function() {
       classifierCall(req.body.input, function() {
         var intent = topClass;
@@ -77,12 +78,12 @@ app.post('/conversation', function(req, res, next) {
           var action = actions[intent][keyword];
         };
 
-          if (action) {
-            console.log(req.session);
-            if (req.session.convers === true || intent === "do you cover") {
-              req.session.convers = true;
+              console.log(req.body.conversation_id);
+              console.log(req.body);
+          if (action || req.body.conversation_id) {
+            if ( req.body.conversation_id || intent === "do you cover") {
+              // console.log(req.body);
               dialog.conversation(params, function(err, results) {
-                console.log(results);
                 if (err)
                   return next(err);
                 else
@@ -112,8 +113,9 @@ app.post('/conversation', function(req, res, next) {
 });
 
 function  conversationResponse(action) {
-   return { conversation_id: 2586558,
-    client_id: 2595560,
+   return {
+    conversation_id: '',
+    client_id: '2595560',
     input: 'hello',
     confidence: -1,
     response: [ action ] };
@@ -179,8 +181,8 @@ function classifierCall(body, callBack) {
       console.log(err);
     }
     else {
-      console.log(results);
       if (results !== null) {
+        console.log(results);
         getTopClass(results);
       };
     }
