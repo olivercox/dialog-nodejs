@@ -22,6 +22,7 @@ angular.module('simpletonApp', ['luegg.directives', 'ngSanitize'])
             if (Simpleton.conversation_id) {
                 params.conversation_id = Simpleton.conversation_id;
                 params.client_id = Simpleton.client_id;
+                params.dialog_id = Simpleton.dialog_id;
             }
             Simpleton.messages.push({
                 from: Simpleton.users[1], text: Simpleton.messageText
@@ -34,7 +35,9 @@ angular.module('simpletonApp', ['luegg.directives', 'ngSanitize'])
                 var dialogResp = response;
                 Simpleton.conversation_id = response.data.conversation.conversation_id;
                 Simpleton.client_id = response.data.conversation.client_id;
+                Simpleton.dialog_id = response.data.dialog_id;
                 Simpleton.talk(dialogResp);
+                Simpleton.messageText = "";
             }, function errorCallback(response) {
                 // called asynchronously if an error occurs
                 // or server returns response with an error status.
