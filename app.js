@@ -16,6 +16,15 @@
 
 'use strict';
 
+var keywords = [];
+var topClass = null;
+
+var actions = {
+  "how to" : { "claim" : "phone this number 0800123123" },
+  "time" : { "claim" : "it's dinner time", "payment" : "you owe money" }
+};
+
+
 var express = require('express'),
   app       = express(),
   fs        = require('fs'),
@@ -31,8 +40,8 @@ require('./config/express')(app);
 // if bluemix credentials exists, then override local
 var credentials =  extend({
   url: 'https://gateway.watsonplatform.net/dialog/api',
-  username: '3be7093e-99a6-4212-89ed-30cefa0d74c7',
-  password: 'AYwkT1RvMk8n',
+  username: 'e9510e78-0462-4864-8100-355f36101e6e',
+  password: 'Jw4HFBpqLLt6',
   version: 'v1'
 }, bluemix.getServiceCreds('dialog')); // VCAP_SERVICES
 
@@ -47,28 +56,54 @@ var dialog_id_in_json = (function() {
 })();
 
 
-var dialog_id = process.env.DIALOG_ID || dialog_id_in_json || 'ae36a389-39a3-4a5a-a80b-5998cc6fa81d';
+var dialog_id = process.env.DIALOG_ID || dialog_id_in_json || '037e8a89-e713-4065-9717-b7cc2acb3e2e';
 
 // Create the service wrapper
 var dialog = watson.dialog(credentials);
 
 app.post('/conversation', function(req, res, next) {
   var params = extend({ dialog_id: dialog_id }, req.body);
-  console.log(!empty(req.body));
   if(!empty(req.body)) {
-    dialog.conversation(params, function(err, results) {
-      if (err)
-        return next(err);
-      else
-        // sendtoAlchemy(req.body.input, function() {
-        //   res.json({ dialog_id: dialog_id, conversation: results});
-        // });
+
+    sendtoAlchemy(req.body.input, function() {
       classifierCall(req.body.input, function() {
-        res.json({ dialog_id: dialog_id, conversation: results});
+        // console.log(classifierResults);
+        var intent = topClass;
+        var keyword = keywords[0]
+          if (actions[intent][keyword]) {
+            var response = { conversation_id: 2586558,
+              client_id: 2595560,
+              input: 'hello',
+              confidence: -1,
+              response: [ actions[intent][keyword] ] };
+
+            res.json({ dialog_id: 10, conversation: response});
+          }
+
+
+        // res.json({ dialog_id: dialog_id, conversation: results});
       });
     });
+
+      // classifierCall(req.body.input, function() {
+      //   console.log('classifier done');
+        // res.json({ dialog_id: dialog_id, conversation: results});
+      // });
+
+    // dialog.conversation(params, function(err, results) {
+    //   console.log(results);
+    //   if (err)
+    //     return next(err);
+    //   else
+    //     // sendtoAlchemy(req.body.input, function() {
+    //       res.json({ dialog_id: dialog_id, conversation: results});
+        // });
+      // classifierCall(req.body.input, function() {
+      //   res.json({ dialog_id: dialog_id, conversation: results});
+      // });
+    // });
   }
-  });
+});
 
 app.post('/profile', function(req, res, next) {
   var params = extend({ dialog_id: dialog_id }, req.body);
@@ -107,7 +142,7 @@ function sendtoAlchemy(body, callBack) {
 }
 
 function addToKeyWords(response) {
-  var keywords = [];
+  keywords = [];
   response.keywords.forEach(function(word) {
     keywords.push(word.text)
   });
@@ -123,18 +158,29 @@ var nlClassifier = watson.natural_language_classifier({
 
 function classifierCall(body, callBack) {
   var classifyParams = {
-    classifier: process.env.CLASSIFIER_ID || '3a84cfx63-nlc-13566', // pre-trained classifier
+    classifier: process.env.CLASSIFIER_ID || '3a84dfx64-nlc-14073', // pre-trained classifier
     text: body
   };
-
+console.log('line 164');
   nlClassifier.classify(classifyParams, function(err, results) {
-    if (err)
-      return (err);
-    else
+console.log('line 166');
+
+    if (err) {
+      console.log(err);
+      console.log('error');
+    }
+    else {
+      console.log('hello');
       console.log(results);
-      // res.json(results);
-  });
+      if (results !== null) {
+        getTopClass(results);
+      };
+    }
   callBack();
+  });
 };
 
 
+function getTopClass(response) {
+  topClass = response.top_class
+};
